@@ -1,0 +1,187 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+// Coffee prices defined as variables so they can be changed
+float espresso_price = 3.5;
+float cappuccino_price = 4.5;
+float mocha_price = 5.5;
+
+#define ESPRESSO_COFFEE_BEANS_GRAMS 8
+#define ESPRESSO_WATER_MILLILITERS 30
+#define ESPRESSO_MILK_MILLILITERS 0
+#define ESPRESSO_CHOCOLATE_SYRUP_MILLILITERS 0
+
+#define CAPPUCCINO_COFFEE_BEANS_GRAMS 8
+#define CAPPUCCINO_WATER_MILLILITERS 30
+#define CAPPUCCINO_MILK_MILLILITERS 70
+#define CAPPUCCINO_CHOCOLATE_SYRUP_MILLILITERS 0
+
+#define MOCHA_COFFEE_BEANS_GRAMS 8
+#define MOCHA_WATER_MILLILITERS 30
+#define MOCHA_MILK_MILLILITERS 160
+#define MOCHA_CHOCOLATE_SYRUP_MILLILITERS 30
+
+#define ADMIN_PASSWORD 8521980
+
+// Declare total sales amount globally
+float total_amount = 0.0;
+
+// Function prototypes
+void process_payment(float price);
+void admin_mode();
+void change_coffee_prices();
+int confirm_order();
+
+int main() {
+    int option;
+
+    while (1) {
+        // Menu selection prompt
+        printf("Please select an option (1, 2, or 3):\n");
+        printf("1. Order a coffee\n");
+        printf("2. Admin mode\n");
+        printf("3. Exit\n");
+        scanf("%d", &option);
+
+        // Switch-case for handling different options
+        switch (option) {
+            case 1:
+                printf("You selected: Order a coffee\n");
+                printf("What would you like from the Menu below?\n");
+                printf("Coffee Type                   Price (AED)\n");
+                printf("1. Espresso                   %.2f\n", espresso_price);
+                printf("2. Cappuccino                 %.2f\n", cappuccino_price);
+                printf("3. Mocha                      %.2f\n", mocha_price);
+
+                int coffee_choice;
+                scanf("%d", &coffee_choice);
+
+                switch (coffee_choice) {
+                    case 1:
+                        printf("You ordered an Espresso for AED %.2f\n", espresso_price);
+                        if (confirm_order()) {
+                            process_payment(espresso_price);
+                            printf("Please enjoy your Espresso!\n");
+                        } else {
+                            printf("Order cancelled.\n");
+                        }
+                        break;
+                    case 2:
+                        printf("You ordered a Cappuccino for AED %.2f\n", cappuccino_price);
+                        if (confirm_order()) {
+                            process_payment(cappuccino_price);
+                            printf("Please enjoy your Cappuccino!\n");
+                        } else {
+                            printf("Order cancelled.\n");
+                        }
+                        break;
+                    case 3:
+                        printf("You ordered a Mocha for AED %.2f\n", mocha_price);
+                        if (confirm_order()) {
+                            process_payment(mocha_price);
+                            printf("Please enjoy your Mocha!\n");
+                        } else {
+                            printf("Order cancelled.\n");
+                        }
+                        break;
+                    default:
+                        printf("Invalid coffee selection, please try again.\n");
+                }
+                break;
+
+            case 2:
+                admin_mode(); // Call the admin_mode function
+                break;
+
+            case 3:
+                printf("Exiting...\n");
+                exit(0);
+
+            default:
+                printf("Invalid option, please try again.\n");
+        }
+    }
+    return 0;
+}
+
+// Function for processing payments
+void process_payment(float price) {
+    float total_paid = 0.0;
+    float coin;
+
+    printf("Total price: AED %.2f. Please insert coins (1 or 0.5 Dirham).\n", price);
+
+    while (total_paid < price) {
+        scanf("%f", &coin);
+        if (coin == 1.0 || coin == 0.5) {
+            total_paid += coin;
+            printf("Total inserted: AED %.2f\n", total_paid);
+        } else {
+            printf("Invalid coin. Please insert 1 or 0.5 Dirham.\n");
+        }
+    }
+
+    total_amount += price;
+    if (total_paid > price) {
+        printf("Change: AED %.2f\n", total_paid - price);
+    }
+}
+
+// Function to confirm the order
+int confirm_order() {
+    char confirm;
+    printf("Please confirm your order (y/n): ");
+    scanf(" %c", &confirm);  // Adding space before %c to consume newline character
+    return (confirm == 'y' || confirm == 'Y');
+}
+
+// Function for admin mode
+void admin_mode() {
+    int input_password;
+    printf("You selected: Admin mode\n");
+    printf("Please enter the admin password: ");
+    scanf("%d", &input_password);
+
+    if (input_password == ADMIN_PASSWORD) {
+        // If the password is correct, proceed to admin mode
+        printf("\nAdmin mode:\n");
+        printf("1. View coffee ingredients (Currently not implemented)\n");
+        printf("2. Update coffee prices\n");
+        printf("3. View total sales\n");
+        printf("0. Exit Admin mode\n");
+
+        int admin_choice;
+        printf("Enter your choice: ");
+        scanf("%d", &admin_choice);
+
+        switch (admin_choice) {
+            case 1:
+                printf("Currently not implemented.\n");
+                break;
+            case 2:
+                change_coffee_prices(); // Call function to change prices
+                break;
+            case 3:
+                printf("Total sales: AED %.2f\n", total_amount);
+                break;
+            case 0:
+                return; // Exit admin mode
+            default:
+                printf("Invalid choice, returning to main menu.\n");
+        }
+    } else {
+        printf("Incorrect password, returning to main menu.\n");
+    }
+}
+
+// Function to change coffee prices
+void change_coffee_prices() {
+    printf("Enter new price for Espresso: ");
+    scanf("%f", &espresso_price);
+    printf("Enter new price for Cappuccino: ");
+    scanf("%f", &cappuccino_price);
+    printf("Enter new price for Mocha: ");
+    scanf("%f", &mocha_price);
+
+    printf("Prices updated.\n");
+}
