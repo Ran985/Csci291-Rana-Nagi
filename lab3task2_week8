@@ -1,0 +1,33 @@
+#include <stdio.h>
+#define INITIAL_BALANCE 1000
+#define MAX_TRANSACTIONS 100
+
+// Function to process transactions
+void process_transactions(int transactions[], int num_transactions) {
+    int balance = INITIAL_BALANCE;
+    int tobeprocessed[MAX_TRANSACTIONS];
+    int tobeprocessed_count = 0;
+    int i;
+
+
+    for (i = 0; i < num_transactions; i++) {
+        int transaction = transactions[i];
+
+       
+        if (transaction < 0 && -transaction > balance) {
+            tobeprocessed[tobeprocessed_count++] = transaction;
+            printf("Invalid: %d AED exceeds balance %d AED.\n", -transaction, balance);
+            continue;
+        }
+
+ balance += transaction;
+
+          if (balance <= 0) {
+            printf("Balance is zero. No further transactions.\n");
+            tobeprocessed[tobeprocessed_count++] = transaction;
+            break;
+        }
+    }
+
+   
+    printf("\nFinal Balance: %d AED\n", balance);
