@@ -1,0 +1,16 @@
+#include <stdio.h>
+#include <string.h>
+#include <ctype.h>
+
+#define NUM_TEAMS 5    
+#define SQUAD_SIZE 20  
+
+typedef struct {
+    char name[26];     
+    int kit_number;     
+    char club[21];      
+    struct {
+        int day, month, year; 
+    } age;
+    char position[21];  
+} player_t;
