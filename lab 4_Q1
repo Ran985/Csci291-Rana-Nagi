@@ -1,0 +1,48 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+int is_valid_float(const char *str) {
+    char *endptr;
+    strtod(str, &endptr);
+    return *endptr == '\0';
+}
+
+void process_file(const char *input_filename, const char *output_filename) {
+    FILE *input_file = fopen(input_filename, "r");
+    if (input_file == NULL) {
+        printf("Error opening file %s for reading.\n", input_filename);
+        return;
+    }
+
+    FILE *output_file = fopen(output_filename, "w");
+    if (output_file == NULL) {
+        printf("Error opening file %s for writing.\n", output_filename);
+        fclose(input_file);
+        return;
+    }
+
+    char buffer[256];
+    int invalid_count = 0;
+    float value;
+
+    while (fscanf(input_file, "%s", buffer) != EOF) {
+        if (is_valid_float(buffer)) {
+            value = atof(buffer);
+            fprintf(output_file, "%.6f\n", value);
+        } else {
+            invalid_count++;
+        }
+    }
+
+    fclose(input_file);
+    fclose(output_file);
+
+    printf("Number of invalid float values: %d\n", invalid_count);
+}
+
+int main() {
+    const char *input_filename = "data.txt";
+    const char *output_filename = "valid_data.txt";
+    process_file(input_filename, output_filename);
+    return 0;
+}
