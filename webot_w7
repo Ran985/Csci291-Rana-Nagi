@@ -1,0 +1,105 @@
+#include <webots/robot.h>
+#include <webots/distance_sensor.h>
+#include <webots/light_sensor.h>
+#include <webots/motor.h>
+
+#define TIME_STEP 64
+#define SPEED 4.0
+#define NUM_PROXIMITY_SENSORS 8  // e-puck has 8 proximity sensors
+
+// Function prototypes
+void initialize_sensors(WbDeviceTag* distance_sensors, WbDeviceTag* light_sensor);
+void move_forward(WbDeviceTag left_motor, WbDeviceTag right_motor);
+void turn_left(WbDeviceTag left_motor, WbDeviceTag right_motor);
+void turn_right(WbDeviceTag left_motor, WbDeviceTag right_motor);
+
+int main() {
+  wb_robot_init(); // Initialize the Webots API
+
+  // Set up motors
+  WbDeviceTag left_motor = wb_robot_get_device("left wheel motor");
+  WbDeviceTag right_motor = wb_robot_get_device("right wheel motor");
+  wb_motor_set_position(left_motor, INFINITY);
+  wb_motor_set_position(right_motor, INFINITY);
+  wb_motor_set_velocity(left_motor, 0.0);
+  wb_motor_set_velocity(right_motor, 0.0);
+
+  // Initialize sensors
+  WbDeviceTag distance_sensors[NUM_PROXIMITY_SENSORS];
+  WbDeviceTag light_sensor;
+  initialize_sensors(distance_sensors, &light_sensor);
+
+  double highest_light_value = 0;
+  int highest_light_position[2] = {0, 0}; // Placeholder for light position
+
+  // Main control loop
+  while (wb_robot_step(TIME_STEP) != -1) {
+    // Read proximity sensor values
+    double left_distance = wb_distance_sensor_get_value(distance_sensors[0]);
+    double front_left_distance = wb_distance_sensor_get_value(distance_sensors[1]);
+    double front_distance = wb_distance_sensor_get_value(distance_sensors[2]);
+    double front_right_distance = wb_distance_sensor_get_value(distance_sensors[3]);
+    double right_distance = wb_distance_sensor_get_value(distance_sensors[7]);
+
+    // Read light sensor value
+    double light_intensity = wb_light_sensor_get_value(light_sensor);
+
+    // Update highest light intensity and position if new maximum found
+    if (light_intensity > highest_light_value) {
+      highest_light_value = light_intensity;
+      highest_light_position[0] = 1;  // Replace with actual x-coordinate
+      highest_light_position[1] = 1;  // Replace with actual y-coordinate
+    }
+
+    // Wall-following logic: prioritize left wall
+    if (front_distance > 80.0 && front_left_distance > 80.0 && front_right_distance > 80.0) {
+      // No wall directly in front
+      if (left_distance < 80.0) {
+        // Wall on the left, so continue moving forward
+        move_forward(left_motor, right_motor);
+      } else {
+        // No wall on the left, so turn left slightly
+        turn_left(left_motor, right_motor);
+      }
+    } else {
+      // Wall detected in front, so turn right
+      turn_right(left_motor, right_motor);
+    }
+  }
+
+  wb_robot_cleanup(); // Cleanup Webots API
+  return 0;
+}
+
+// Function to initialize sensors
+void initialize_sensors(WbDeviceTag* distance_sensors, WbDeviceTag* light_sensor) {
+  // Initialize all proximity sensors
+  char sensor_name[5];
+  for (int i = 0; i < NUM_PROXIMITY_SENSORS; i++) {
+    sprintf(sensor_name, "ps%d", i);
+    distance_sensors[i] = wb_robot_get_device(sensor_name);
+    wb_distance_sensor_enable(distance_sensors[i], TIME_STEP);
+  }
+
+  // Initialize the light sensor
+  *light_sensor = wb_robot_get_device("ls0");
+  wb_light_sensor_enable(*light_sensor, TIME_STEP);
+}
+
+// Function to move the robot forward
+void move_forward(WbDeviceTag left_motor, WbDeviceTag right_motor) {
+  wb_motor_set_velocity(left_motor, SPEED);
+  wb_motor_set_velocity(right_motor, SPEED);
+}
+
+// Function to turn the robot left
+void turn_left(WbDeviceTag left_motor, WbDeviceTag right_motor) {
+  wb_motor_set_velocity(left_motor, SPEED / 2);
+  wb_motor_set_velocity(right_motor, SPEED);
+}
+
+// Function to turn the robot right
+void turn_right(WbDeviceTag left_motor, WbDeviceTag right_motor) {
+  wb_motor_set_velocity(left_motor, SPEED);
+  wb_motor_set_velocity(right_motor, SPEED / 2);
+}
