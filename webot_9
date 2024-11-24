@@ -1,0 +1,140 @@
+[12:35 pm, 24/11/2024] ~ Rana ~: ok this
+[12:35 pm, 24/11/2024] ~ Rana ~: #include <webots/robot.h>
+#include <webots/distance_sensor.h>
+#include <webots/light_sensor.h>
+#include <webots/motor.h>
+#include <webots/supervisor.h>  // For position retrieval
+#include <stdio.h>
+
+#define TIME_STEP 64
+#define SPEED 4.0
+#define NUM_PROXIMITY_SENSORS 8
+#define WALL_THRESHOLD 80.0
+#define WALL_FOLLOW_DISTANCE 50.0
+
+// Light sensor setup
+#define NUM_LIGHT_SENSORS 3
+WbDeviceTag light_sensors[NUM_LIGHT_SENSORS];
+double max_light_intensity = 0.0;
+double brightest_position[3];
+
+// Function prototypes
+void initialize_sensors(WbDeviceTag* distance_sensors);
+void initialize_light_sensors();
+double get_light_intensity();
+void move_forward(WbDeviceTag left_motor, WbDeviceTag right_motor);
+void turn_left(WbDeviceTag left_motor, WbDeviceTag right_motor, double factor);
+void turn_right(WbDeviceTag left_motor, WbDeviceTag right_motor, double factor);
+void store_position(double* position);
+
+int main() {
+  wb_robot_init();
+
+  // Motor setup
+  WbDeviceTag left_motor = wb_robot_get_device("left wheel motor");
+  WbDeviceTag right_motor = wb_robot_get_device("right wheel motor");
+  wb_motor_set_position(left_motor, INFINITY);
+  wb_motor_set_position(right_motor, INFINITY);
+
+  // Initialize distance and light sensors
+  WbDeviceTag distance_sensors[NUM_PROXIMITY_SENSORS];
+  initialize_sensors(distance_sensors);
+  initialize_light_sensors();
+
+  int cycle = 1;  // Track exploration vs. target cycle
+  while (wb_robot_step(TIME_STEP) != -1) {
+    // Read light intensity
+    double current_light = get_light_intensity();
+
+    // During the first cycle, record max light intensity
+    if (cycle == 1) {
+      if (current_light > max_light_intensity) {
+        max_light_intensity = current_light;
+        store_position(brightest_position);  // Record position
+      }
+    }
+
+    // Wall-following logic
+    double left_distance = wb_distance_sensor_get_value(distance_sensors[0]);
+    double front_distance = wb_distance_sensor_get_value(distance_sensors[2]);
+    double right_distance = wb_distance_sensor_get_value(distance_sensors[7]);
+
+    if (front_distance < WALL_THRESHOLD) {
+      turn_left(left_motor, right_motor, 1.0);
+    } else if (left_distance < WALL_FOLLOW_DISTANCE) {
+      turn_right(left_motor, right_motor, 0.5);
+    } else {
+      move_forward(left_motor, right_motor);
+    }
+
+    // Second cycle: Stop at brightest spot
+    if (cycle == 2 && current_light >= max_light_intensity) {
+      wb_motor_set_velocity(left_motor, 0.0);
+      wb_motor_set_velocity(right_motor, 0.0);
+      printf("Stopped at brightest spot: Light Intensity = %.2f\n", current_light);
+      break;  // Stop execution
+    }
+
+    // Transition to target phase after a set duration
+    if (cycle == 1 && wb_robot_get_time() > 60.0) {  // 60 seconds for the first cycle
+      cycle = 2;
+      printf("Exploration complete. Brightest light: %.2f\n", max_light_intensity);
+    }
+  }
+
+  wb_robot_cleanup();
+  return 0;
+}
+
+// Initialize proximity sensors
+void initialize_sensors(WbDeviceTag* distance_sensors) {
+  char sensor_name[5];
+  for (int i = 0; i < NUM_PROXIMITY_SENSORS; i++) {
+    sprintf(sensor_name, "ps%d", i);
+    distance_sensors[i] = wb_robot_get_device(sensor_name);
+    wb_distance_sensor_enable(distance_sensors[i], TIME_STEP);
+  }
+}
+
+// Initialize light sensors
+void initialize_light_sensors() {
+  char light_sensor_name[5];
+  for (int i = 0; i < NUM_LIGHT_SENSORS; i++) {
+    sprintf(light_sensor_name, "ls%d", i);
+    light_sensors[i] = wb_robot_get_device(light_sensor_name);
+    wb_light_sensor_enable(light_sensors[i], TIME_STEP);
+  }
+}
+
+// Get average light intensity from sensors
+double get_light_intensity() {
+  double total_light = 0.0;
+  for (int i = 0; i < NUM_LIGHT_SENSORS; i++) {
+    total_light += wb_light_sensor_get_value(light_sensors[i]);
+  }
+  return total_light / NUM_LIGHT_SENSORS;
+}
+
+// Store current robot position
+void store_position(double* position) {
+  const double* current_position = wb_supervisor_node_get_position(wb_supervisor_node_get_self());
+  for (int i = 0; i < 3; i++) {
+    position[i] = current_position[i];
+  }
+}
+
+// Movement functions
+void move_forward(WbDeviceTag left_motor, WbDeviceTag right_motor) {
+  wb_motor_set_velocity(left_motor, SPEED);
+  wb_motor_set_velocity(right_motor, SPEED);
+}
+
+void turn_left(WbDeviceTag left_motor, WbDeviceTag right_motor, double factor) {
+  wb_motor_set_velocity(left_motor, SPEED * (1.0 - factor));
+  wb_motor_set_velocity(right_motor, SPEED);
+}
+
+void turn_right(WbDeviceTag left_motor, WbDeviceTag right_motor, double factor) {
+  wb_motor_set_velocity(left_motor, SPEED);
+  wb_motor_set_velocity(right_motor, SPEED * (1.0 - factor));
+}
